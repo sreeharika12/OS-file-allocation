@@ -1,0 +1,26 @@
+#include <stdio.h>
+#include <pthread.h>
+#include <semaphore.h>
+
+char router_ip[16] = "192.168.1.1";
+sem_t sem;
+
+void* update_ip(void* arg) {
+    sem_wait(&sem);
+    printf("Enter new Router IP: ");
+    scanf("%15s", router_ip);
+    printf("Updated IP: %s\n", router_ip);
+    sem_post(&sem);
+    return NULL;
+}
+
+int main() {
+    sem_init(&sem, 0, 1); // Allow 1 thread at a time
+    pthread_t t1, t2;
+    pthread_create(&t1, NULL, update_ip, NULL);
+    pthread_create(&t2, NULL, update_ip, NULL);
+    pthread_join(t1, NULL);
+    pthread_join(t2, NULL);
+    sem_destroy(&sem);
+    return 0;
+}
