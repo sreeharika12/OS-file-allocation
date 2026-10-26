@@ -1,0 +1,20 @@
+#include <stdio.h>
+int main() {
+    char files[2][5][30];
+    int i, j, n[2];
+    for (i = 0; i < 2; i++) {
+        printf("Student %d - Number of files: ", i+1);
+        scanf("%d", &n[i]);
+        if (n[i] < 0 || n[i] > 5) return 1;
+        for (j = 0; j < n[i]; j++) {
+            printf("Enter file name: ");
+            scanf("%29s", files[i][j]);
+        }
+    }
+    for (i = 0; i < 2; i++) {
+        printf("\nStudent %d Directory:\n", i+1);
+        for (j = 0; j < n[i]; j++)
+            printf("%s\n", files[i][j]);
+    }
+    return 0;
+} 
