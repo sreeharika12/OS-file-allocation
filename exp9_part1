@@ -1,0 +1,44 @@
+#include <stdio.h>
+
+int main() {
+    int n, q = 2, completed = 0;
+    int burst[20], remaining[20];
+
+    printf("Enter number of customers: ");
+    scanf("%d", &n);
+
+    /* Enter processing time for each customer */
+    for (int i = 0; i < n; i++) {
+        printf("Enter processing time for Customer %d: ", i + 1);
+        scanf("%d", &burst[i]);
+
+        remaining[i] = burst[i];
+    }
+
+    printf("\nTime Quantum = %d units\n", q);
+    printf("\n--- Round Robin Scheduling ---\n");
+
+    while (completed < n) {
+        for (int i = 0; i < n; i++) {
+            if (remaining[i] > 0) {
+
+                if (remaining[i] <= q) {
+                    printf("Customer %d gets %d units and completes checkout.\n",
+                           i + 1, remaining[i]);
+
+                    remaining[i] = 0;
+                    completed++;
+                }
+                else {
+                    printf("Customer %d gets %d units. Remaining: %d units.\n",
+                           i + 1, q, remaining[i] - q);
+remaining[i] -= q;
+                }
+            }
+        }
+    }
+
+    printf("\nAll customer checkouts completed fairly!\n");
+
+    return 0;
+}
