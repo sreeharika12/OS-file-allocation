@@ -1,0 +1,13 @@
+#include <stdio.h>
+int main() {
+    int apps, m[3]={-1,-1,-1}, l[3]={0}, p[8]={1,2,3,1,4,2,5,1}, f=0, i=0, j, fnd, pos;
+    for (printf("Enter number of apps: "), scanf("%d", &apps), printf("\nMobile Memory Management - LRU\n"); i < 8; i++) {
+        for (fnd=-1, pos=0, j=0; j < 3; j++) { if (m[j] == p[i]) fnd = j; if (m[j] == -1) pos = j; }
+        if (fnd != -1) printf("Page %d -> Hit\n", p[i]), l[fnd] = i;
+        else {
+            if (m[pos] != -1) for (j = 1; j < 3; j++) if (l[j] < l[pos]) pos = j;
+            m[pos] = p[i], l[pos] = i, f++, printf("Page %d -> Replaced\n", p[i]);
+        }
+    }
+    return printf("\nTotal Page Faults = %d\n", f), 0;
+}
