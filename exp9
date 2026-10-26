@@ -1,0 +1,75 @@
+#include <stdio.h>
+#include <string.h>
+#include <ctype.h>
+
+struct Task {
+    char name[30];
+    int priority;
+};
+
+struct Task t[99], temp;
+
+/* Default college priority list (Lower number = Higher Urgency) */
+const char *college_tasks[] = {
+    "Exam",        // Priority 1
+    "Assignment",  // Priority 2
+    "Lecture",     // Priority 3
+    "Lab",         // Priority 4
+    "Club",        // Priority 5
+    "Gym",         // Priority 6
+    "Hangout",     // Priority 7
+    "Gaming"       // Priority 8
+};
+int total_college_tasks = 8;
+
+/* Automatically calculates priority rank for any task name */
+int getAutoPriority(char name[]) {
+    // 1. Check if task matches typical college routine (case-insensitive)
+    for (int i = 0; i < total_college_tasks; i++) {
+        #if defined(_WIN32)
+        if (_stricmp(name, college_tasks[i]) == 0) return i + 1;
+        #else
+        if (strcasecmp(name, college_tasks[i]) == 0) return i + 1;
+        #endif
+    }
+}
+
+    // 2. Any custom/unknown activity gets ranked after standard routine
+    return total_college_tasks + 1 + (tolower(name[0]) - 'a');
+}
+
+int main() {
+    int n;
+
+    printf("Enter number of college tasks: ");
+    if (scanf("%d", &n) != 1 || n <= 0 || n > 99) {
+        printf("Invalid input.\n");
+        return 1;
+    }
+
+    for (int i = 0; i < n; i++) {
+        printf("Enter task %d: ", i + 1);
+        scanf("%29s", t[i].name);
+
+        // Auto-assign priority score
+        t[i].priority = getAutoPriority(t[i].name);
+    }
+
+    /* Sort tasks by priority order (1 = Top Priority) */
+    for (int i = 0; i < n; i++) {
+        for (int j = i + 1; j < n; j++) {
+            if (t[i].priority > t[j].priority) {
+                temp = t[i];
+                t[i] = t[j];
+                t[j] = temp;
+            }
+        }
+    }
+
+    printf("\n--- Priority Order ---\n");
+for (int i = 0; i < n; i++) {
+        printf("%d. %s\n", i + 1, t[i].name);
+    }
+
+    return 0;
+}
