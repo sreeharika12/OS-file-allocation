@@ -1,0 +1,41 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <pthread.h>
+#include <unistd.h>
+
+pthread_mutex_t *r;
+int req[5][2]={{0,5},{1,0},{0,2},{0,3},{0,4}};
+char *p[]={"Harvesting","Irrigation","Seed Planting","Fertilization","Weeding"};
+char *res[]={"Tractor","Water Pump","Seed Dispenser","Fertilizer Dispenser","Weeding Machine","Harvesting Machine"};
+
+void *farm(void *x){
+    int i=*(int*)x,a=req[i][0],b=req[i][1],t;
+    if(a>b){t=a;a=b;b=t;}
+    printf("\n%s waiting for %s and %s\n",p[i],res[a],res[b]);
+    pthread_mutex_lock(&r[a]); printf("%s acquired %s\n",p[i],res[a]);
+    pthread_mutex_lock(&r[b]); printf("%s acquired %s\n",p[i],res[b]);
+    printf("%s is working...\n",p[i]); sleep(1);
+    pthread_mutex_unlock(&r[b]); pthread_mutex_unlock(&r[a]);
+    printf("%s released resources\n",p[i]);
+    return NULL;
+}
+
+int main(){
+    int n;
+    printf("Enter number of farm processes (1-5): ");
+    scanf("%d",&n);
+    if(n<1||n>5) return 1;
+
+    pthread_t *t=malloc(n*sizeof(pthread_t));
+    int *id=malloc(n*sizeof(int));
+    r=malloc(6*sizeof(pthread_mutex_t));
+
+    for(int i=0;i<6;i++) pthread_mutex_init(&r[i],NULL);
+    for(int i=0;i<n;i++){id[i]=i;pthread_create(&t[i],NULL,farm,&id[i]);}
+    for(int i=0;i<n;i++) pthread_join(t[i],NULL);
+for(int i=0;i<n;i++) pthread_join(t[i],NULL);
+
+    for(int i=0;i<6;i++) pthread_mutex_destroy(&r[i]);
+    free(t); free(id); free(r);
+    return 0;
+}
