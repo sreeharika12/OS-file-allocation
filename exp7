@@ -1,0 +1,64 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <pthread.h>
+
+// Dynamic array for mutexes
+pthread_mutex_t* valve;
+
+void* zone(void* a) {
+    int i = *(int*)a;
+
+    pthread_mutex_lock(&valve[i]);
+    printf("Zone %d irrigating\n", i);
+    pthread_mutex_unlock(&valve[i]);
+
+    return NULL;
+}
+
+int main(int argc, char* argv[]) {
+    int num_zones;
+
+    // Check if input was provided via command-line argument
+    if (argc > 1) {
+        num_zones = atoi(argv[1]);
+    } else {
+        // Otherwise, prompt the user for input
+        printf("Enter number of irrigation zones: ");
+        if (scanf("%d", &num_zones) != 1 || num_zones <= 0) {
+            printf("Invalid number of zones.\n");
+            return 1;
+        }
+    }
+
+    // Allocate threads, IDs, and mutexes dynamically
+    pthread_t* t = malloc(num_zones * sizeof(pthread_t));
+    int* id = malloc(num_zones * sizeof(int));
+int* id = malloc(num_zones * sizeof(int));
+    valve = malloc(num_zones * sizeof(pthread_mutex_t));
+
+    // Initialize mutexes
+    for (int i = 0; i < num_zones; i++) {
+        pthread_mutex_init(&valve[i], NULL);
+    }
+
+    // Create threads
+    for (int i = 0; i < num_zones; i++) {
+        id[i] = i;
+        pthread_create(&t[i], NULL, zone, &id[i]);
+    }
+
+    // Join threads
+    for (int i = 0; i < num_zones; i++) {
+        pthread_join(t[i], NULL);
+    }
+
+    // Clean up memory and destroy mutexes
+    for (int i = 0; i < num_zones; i++) {
+        pthread_mutex_destroy(&valve[i]);
+    }
+    free(t);
+    free(id);
+    free(valve);
+
+    return 0;
+}
