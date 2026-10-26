@@ -1,0 +1,129 @@
+#include <stdio.h> 
+#include <stdlib.h> 
+#include <pthread.h> 
+#include <unistd.h> 
+ 
+// Shared state across threads 
+int* moisture_level; 
+pthread_rwlock_t* zone_lock; 
+pthread_mutex_t global_irrigation_lock; // Global lock to enforce single-writer access system-wide 
+int num_zones; 
+ 
+typedef struct { 
+    int thread_id; 
+    int zone_id; 
+} ThreadArg; 
+ 
+// Reader thread: Inspects soil moisture for a specific zone 
+void* inspect_zone(void* arg) { 
+    ThreadArg* data = (ThreadArg*)arg; 
+    int z = data->zone_id; 
+    int id = data->thread_id; 
+ 
+    // Multiple readers can inspect different (or same) zones concurrently 
+    pthread_rwlock_rdlock(&zone_lock[z]); 
+    printf("[Reader %d] Reading Zone %d moisture level: %d%%\n", id, z, moisture_level[z]); 
+    usleep(100000); // Simulate reading time 
+    pthread_rwlock_unlock(&zone_lock[z]); 
+ 
+    free(data); 
+    return NULL; 
+} 
+/ Writer thread: Irrigates a zone (Only ONE writer active system-wide) 
+void* irrigate_zone(void* arg) { 
+    ThreadArg* data = (ThreadArg*)arg; 
+    int z = data->zone_id; 
+    int id = data->thread_id; 
+ 
+    // 1. Acquire global irrigation lock so NO OTHER writer can irrigate ANY zone simultaneously 
+    pthread_mutex_lock(&global_irrigation_lock); 
+ 
+    // 2. Lock the specific zone for writing 
+    pthread_rwlock_wrlock(&zone_lock[z]); 
+ 
+    printf("  ---> [Writer %d] STARTING Irrigation on Zone %d (Current: %d%%)\n", id, z, moisture_level[z]); 
+    moisture_level[z] += 20; 
+    usleep(300000); // Simulate irrigation duration 
+    printf("  <--- [Writer %d] FINISHED Irrigation on Zone %d (New: %d%%)\n", id, z, moisture_level[z]); 
+ 
+    pthread_rwlock_unlock(&zone_lock[z]); 
+ 
+    // 3. Release global lock to allow the next writer to irrigate 
+    pthread_mutex_unlock(&global_irrigation_lock); 
+ 
+    free(data); 
+    return NULL; 
+} 
+int main() { 
+    int num_readers, num_writers; 
+ 
+    // Interactive user inputs 
+    printf("Enter number of irrigation zones: "); 
+    if (scanf("%d", &num_zones) != 1 || num_zones <= 0) { 
+        printf("Invalid input for zones.\n"); 
+        return 1; 
+    } 
+ 
+    printf("Enter number of reader threads (Inspectors): "); 
+    if (scanf("%d", &num_readers) != 1 || num_readers < 0) { 
+        printf("Invalid input for readers.\n"); 
+        return 1; 
+    } 
+ 
+    printf("Enter number of writer threads (Irrigators): "); 
+    if (scanf("%d", &num_writers) != 1 || num_writers < 0) { 
+        printf("Invalid input for writers.\n"); 
+        return 1; 
+    } 
+ 
+    int total_threads = num_readers + num_writers; 
+    if (total_threads == 0) { 
+        printf("No threads to run.\n"); 
+        return 0; 
+    } 
+ 
+    pthread_t* threads = malloc(total_threads * sizeof(pthread_t)); 
+    moisture_level = malloc(num_zones * sizeof(int)); 
+    zone_lock = malloc(num_zones * sizeof(pthread_rwlock_t)); 
+ 
+    // Initialize global mutex and zone RW-locks 
+    pthread_mutex_init(&global_irrigation_lock, NULL);for (int i = 0; i < num_zones; i++) { 
+        moisture_level[i] = 30; // Default initial moisture 
+        pthread_rwlock_init(&zone_lock[i], NULL); 
+    } 
+ 
+    int t_count = 0; 
+ 
+    // Create Reader Threads 
+    for (int i = 0; i < num_readers; i++) { 
+        ThreadArg* arg = malloc(sizeof(ThreadArg)); 
+        arg->thread_id = i + 1; 
+        arg->zone_id = i % num_zones; 
+        pthread_create(&threads[t_count++], NULL, inspect_zone, arg); 
+    } 
+ 
+    // Create Writer Threads 
+    for (int i = 0; i < num_writers; i++) { 
+        ThreadArg* arg = malloc(sizeof(ThreadArg)); 
+        arg->thread_id = i + 1; 
+        arg->zone_id = i % num_zones; 
+        pthread_create(&threads[t_count++], NULL, irrigate_zone, arg); 
+    } 
+ 
+    // Wait for all threads to complete 
+    for (int i = 0; i < total_threads; i++) { 
+        pthread_join(threads[i], NULL); 
+    } 
+ 
+    // Cleanup resources 
+    pthread_mutex_destroy(&global_irrigation_lock); 
+    for (int i = 0; i < num_zones; i++) { 
+        pthread_rwlock_destroy(&zone_lock[i]); 
+    } 
+    free(threads);
+free(moisture_level);
+    free(zone_lock);
+
+    printf("\nAll operations complete.\n");
+    return 0;
+}
